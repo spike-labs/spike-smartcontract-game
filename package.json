@@ -1,0 +1,37 @@
+{
+  "name": "game-smartcontract",
+  "version": "1.0.0",
+  "description": "1. This is one truffle project, please install truffle at first",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "genabi": "truffle compile && truffle-abi -d build/contracts/ -o abi",
+    "deployTokens": "truffle migrate --f 2 --to 5",
+    "deployGameNFT": "truffle migrate --f 4 --to 4",
+    "deployGameToken": "truffle migrate --f 2 --to 2",
+    "deployGovToken": "truffle migrate --f 3 --to 3",
+    "deployGameVault": "truffle migrate --f 5 --to 5"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.7.0",
+    "@truffle/hdwallet-provider": "^2.0.9",
+    "dotenv": "^16.0.1",
+    "merkletreejs": "^0.2.32",
+    "keccak256": "^1.0.6",
+    "truffle-abi": "^1.0.3",
+    "yargs": "^17.5.1"
+  },
+  "devDependencies": {
+    "eth-gas-reporter": "^0.2.25",
+    "truffle-plugin-verify": "^0.5.27"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@chendonglin.gitlab-ce.oasis.world:web3/amongus-smartcontract.git"
+  }
+}

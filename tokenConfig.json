@@ -1,0 +1,26 @@
+{
+    "govToken": {
+        "name": "Demo Governance Token",
+        "symbol": "DGT",
+        "cap": "50000000000000000000000000000",
+        "owner": ""
+    },
+
+    "gameTokens": [{
+        "name": "Demo Game Token",
+        "symbol": "DAT",
+        "owner": ""
+    }],
+
+    "gameNFTs": [{
+        "name": "Demo Game NFT",
+        "symbol": "DGNFT",
+        "mintAdmins": [],
+        "owner":""
+    }],
+
+    "gameVault": {
+        "withdrawAdmins": [],
+        "owner": ""
+    }
+}
