@@ -65,7 +65,7 @@ module.exports = {
       networkCheckTimeout: 600000000,
       websockets: false
     },
-    bsctest: {
+    spikedev: {
       provider: () => new HDWalletProvider(mnemonic, process.env.spikedev_nodeUrl),
       network_id: "9090",
       timeoutBlocks: 600,
