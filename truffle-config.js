@@ -21,7 +21,6 @@ require('dotenv').config();
 const HDWalletProvider = require('@truffle/hdwallet-provider');
 
 const mnemonic = process.env.mnemonic
-console.log("process.env.bsctest_nodeUrl:", process.env.mnemonic)
 module.exports = {
   /**
    * Networks define how you connect to your ethereum client and let you set the
@@ -65,7 +64,17 @@ module.exports = {
       skipDryRun: false,
       networkCheckTimeout: 600000000,
       websockets: false
-    }
+    },
+    bsctest: {
+      provider: () => new HDWalletProvider(mnemonic, process.env.spikedev_nodeUrl),
+      network_id: "9090",
+      timeoutBlocks: 600,
+      //confirmations: 2,
+      gasPrice: 10000000000,
+      skipDryRun: false,
+      networkCheckTimeout: 600000000,
+      websockets: false
+    },
   },
 
   // Set default mocha options here, use special reporters etc.
