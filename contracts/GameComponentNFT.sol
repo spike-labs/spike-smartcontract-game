@@ -65,7 +65,7 @@ contract GameComponentNFT is ERC721Enumerable, ERC2981 {
      * @param user Game player
      * @param tokenId Game or game component token id
      */
-    function isUserPaid(address user, uint256 tokenId) view external returns (bool) {
+    function isUserPaid(address user, uint256 tokenId) view external returns (bool, uint256) {
         return usagePayment.userPaid(tokenId, user);
     }
 

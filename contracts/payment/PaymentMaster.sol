@@ -17,15 +17,15 @@ contract PaymentMaster is Ownable2Step {
     error NoEnoughBalance();
 
     event WhiteList(IERC20 token, bool enabled);
-    event RenewService(uint256 moduleId, address user, address moduleOwner, IERC20 payToken, uint256 commissionAmount, uint256 pureFeeAmount);
+    event RenewService(uint256 moduleId, address user, address moduleOwner, IERC20 payToken, uint256 payAmount);
     event CancelService(uint256 moduleId, address user);
     event FeeStructureUpdate(uint256 moduleId, IERC20 payToken, uint256 feePerUnit, bool isStreamPay);
 
     mapping(IERC20 => bool) public paymentTokenWhitelist;
 
     uint256 public commissionRatio;
-    uint256 public commissionBalance;
-    address paymentOwner;
+    mapping(IERC20 => uint256) public commissionBalance;
+    address public paymentOwner;
 
     struct FeeStructure {
         uint256 feePerUnit;
@@ -41,10 +41,10 @@ contract PaymentMaster is Ownable2Step {
     // account => token => amount
     mapping(address => mapping(IERC20 => uint256)) revenueBalance;
     // moduleId => feeStructure
-    mapping(uint256 => FeeStructure) moduleFeeStructure;
+    mapping(uint256 => FeeStructure) public moduleFeeStructure;
     // account => moduleId => streamPayBalance
-    mapping(address => mapping(uint256 => StreamPayBalance)) userModuleStreamPayBalance;
-    mapping(address => mapping(uint256 => bool)) userModuleOneTimePaid;
+    mapping(address => mapping(uint256 => StreamPayBalance)) public userModuleStreamPayBalance;
+    mapping(address => mapping(uint256 => bool)) public userModuleOneTimePaid;
     
     modifier onlyPaymentOwner {
         if (msg.sender != paymentOwner) revert Unauthorized(msg.sender);
@@ -54,33 +54,32 @@ contract PaymentMaster is Ownable2Step {
     function renewService(uint256 moduleId, uint256 amount) external {
         IERC20 payToken = moduleFeeStructure[moduleId].payToken;
         address user = msg.sender;
-        address moduleOwner = IERC721(paymentOwner).ownerOf(moduleId);
         payToken.safeTransferFrom(user, address(this), amount);
-        (uint256 commissionAmount, uint256 pureFeeAmount) = _getFeeDistribution(amount);
-        commissionBalance += commissionAmount;
+        address moduleOwner = IERC721(paymentOwner).ownerOf(moduleId);
+     
         if (moduleFeeStructure[moduleId].isStreamPay) {     
-            userModuleStreamPayBalance[user][moduleId].balance += pureFeeAmount;
+            userModuleStreamPayBalance[user][moduleId].balance += amount;
             userModuleStreamPayBalance[user][moduleId].updateTime = block.timestamp;
         } else {
+            (uint256 commissionAmount, uint256 pureFeeAmount) = _getFeeDistribution(amount);
+            commissionBalance[payToken] += commissionAmount;
             if (moduleFeeStructure[moduleId].feePerUnit != amount) revert InvalidPay();
             revenueBalance[moduleOwner][payToken] += pureFeeAmount;
             userModuleOneTimePaid[user][moduleId] = true;
         }
 
-        emit RenewService(moduleId, user, moduleOwner, payToken, commissionAmount, pureFeeAmount);
+        emit RenewService(moduleId, user, moduleOwner, payToken, amount);
     }
 
-    function cancelService(uint256 moduleId, address user, address moduleOwner) external onlyPaymentOwner {
+    function cancelService(uint256 moduleId, address moduleOwner) external {
+        address user = msg.sender;
         if (!moduleFeeStructure[moduleId].isStreamPay) return;
         uint256 payBalance = userModuleStreamPayBalance[user][moduleId].balance;
         if (payBalance == 0) {
             return;
         }
         IERC20 payToken = moduleFeeStructure[moduleId].payToken;
-        uint256 lastPayTime = userModuleStreamPayBalance[user][moduleId].updateTime;
-        uint256 eslapedTime = block.timestamp - lastPayTime;
-
-        uint256 needToPay = eslapedTime * moduleFeeStructure[moduleId].feePerUnit;
+        uint256 needToPay = _needToPay(moduleId, user);
         if (needToPay <= payBalance) {
             userModuleStreamPayBalance[user][moduleId].balance -= needToPay;
             revenueBalance[moduleOwner][payToken] += needToPay;
@@ -92,6 +91,15 @@ contract PaymentMaster is Ownable2Step {
         emit CancelService(moduleId, user);
     }
 
+    function _needToPay(uint256 moduleId, address user) view internal returns (uint256) {
+        uint256 feePerUnit = moduleFeeStructure[moduleId].feePerUnit;
+        uint256 lastPayTime = userModuleStreamPayBalance[user][moduleId].updateTime;
+        if (lastPayTime == 0) return feePerUnit * 3600;
+        uint256 eslapedTime = block.timestamp - lastPayTime;
+        uint256 needToPay = eslapedTime * moduleFeeStructure[moduleId].feePerUnit;
+        return needToPay;
+    }
+
     function checkService(uint256 moduleId, address user, address moduleOwner) external onlyPaymentOwner {
         if (!moduleFeeStructure[moduleId].isStreamPay) {
             if (moduleFeeStructure[moduleId].feePerUnit > 0 && !userModuleOneTimePaid[user][moduleId]) revert NoEnoughBalance();
@@ -99,29 +107,42 @@ contract PaymentMaster is Ownable2Step {
         }
         uint256 payBalance = userModuleStreamPayBalance[user][moduleId].balance;
         IERC20 payToken = moduleFeeStructure[moduleId].payToken;
-        uint256 lastPayTime = userModuleStreamPayBalance[user][moduleId].updateTime;
-        uint256 eslapedTime = block.timestamp - lastPayTime;
-        uint256 needToPay = eslapedTime * moduleFeeStructure[moduleId].feePerUnit;
+        uint256 needToPay = _needToPay(moduleId, user);
         if (needToPay > payBalance) revert NoEnoughBalance();
+        (uint256 commissionAmount, uint256 pureFeeAmount) = _getFeeDistribution(needToPay);
+        commissionBalance[payToken] += commissionAmount;
         userModuleStreamPayBalance[user][moduleId].balance -= needToPay;
-        revenueBalance[moduleOwner][payToken] += needToPay;
+        revenueBalance[moduleOwner][payToken] += pureFeeAmount;
     }
 
-    function userPaid(uint256 moduleId, address user) view external returns (bool) {
+    function userPaid(uint256 moduleId, address user) view external returns (bool, uint256) {
         if (moduleFeeStructure[moduleId].isStreamPay) {
-            return userModuleStreamPayBalance[user][moduleId].balance > 0;
+            uint256 payBalance = userModuleStreamPayBalance[user][moduleId].balance;
+            uint256 needToPay = _needToPay(moduleId, user); 
+            return (userModuleStreamPayBalance[user][moduleId].balance > 0, payBalance >= needToPay ? 0 : needToPay - payBalance);
         }
-        return userModuleOneTimePaid[user][moduleId];
+        bool hasPaid = userModuleOneTimePaid[user][moduleId];
+        return (hasPaid, hasPaid ? 0 : moduleFeeStructure[moduleId].feePerUnit);
     }
 
-    function withdraw(IERC20 payToken, uint256 amount) external {
+    function withdrawRevenue(IERC20 payToken, uint256 amount) external {
         revenueBalance[msg.sender][payToken] -= amount;
 
         payToken.safeTransfer(msg.sender, amount);
     }
 
+    function withdrawCommission(IERC20 payToken, address to) external {
+        uint256 totalCommission = commissionBalance[payToken];
+        commissionBalance[payToken] = 0;
+        payToken.safeTransfer(to, totalCommission);
+    } 
+
     function getBalance(IERC20 payToken, address account) view external returns (uint256) {
         return revenueBalance[account][payToken];
+    }
+
+    function getRevenue(address acccount, IERC20 payToken) view external returns (uint256) {
+        return revenueBalance[acccount][payToken];
     }
 
     function configureFeeStructure(uint256 moduleId, IERC20 payToken, uint256 feePerUnit, bool isStreamPay) external onlyPaymentOwner {
@@ -158,6 +179,8 @@ contract PaymentMaster is Ownable2Step {
         if (commissionRatio != 0) {
             commissionAmount = feeAmount * commissionRatio / 10000;
             pureFeeAmount = feeAmount - commissionAmount;
+        } else {
+            pureFeeAmount = feeAmount;
         }
     }
 }
