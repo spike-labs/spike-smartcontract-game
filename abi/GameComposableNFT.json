@@ -388,7 +388,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "tokenId",
+        "name": "",
         "type": "uint256"
       }
     ],
@@ -396,7 +396,7 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "baseId",
+        "name": "",
         "type": "uint256"
       }
     ],
@@ -512,6 +512,11 @@
         "internalType": "bool",
         "name": "",
         "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -1005,7 +1010,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "tokenId",
+        "name": "",
         "type": "uint256"
       }
     ],
@@ -1013,7 +1018,7 @@
     "outputs": [
       {
         "internalType": "bool",
-        "name": "mintAllowed",
+        "name": "",
         "type": "bool"
       }
     ],
@@ -1048,7 +1053,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "tokenId",
+        "name": "",
         "type": "uint256"
       },
       {

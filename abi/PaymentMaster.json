@@ -153,13 +153,7 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "commissionAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "pureFeeAmount",
+        "name": "payAmount",
         "type": "uint256"
       }
     ],
@@ -193,7 +187,13 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "",
+        "type": "address"
+      }
+    ],
     "name": "commissionBalance",
     "outputs": [
       {
@@ -219,8 +219,50 @@
     "type": "function"
   },
   {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "moduleFeeStructure",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "feePerUnit",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "isStreamPay",
+        "type": "bool"
+      },
+      {
+        "internalType": "contract IERC20",
+        "name": "payToken",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [],
     "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "paymentOwner",
     "outputs": [
       {
         "internalType": "address",
@@ -286,6 +328,59 @@
   {
     "inputs": [
       {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "userModuleOneTimePaid",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "userModuleStreamPayBalance",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "balance",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "updateTime",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "uint256",
         "name": "moduleId",
         "type": "uint256"
@@ -307,11 +402,6 @@
         "internalType": "uint256",
         "name": "moduleId",
         "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
       },
       {
         "internalType": "address",
@@ -366,6 +456,11 @@
         "internalType": "bool",
         "name": "",
         "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -384,7 +479,25 @@
         "type": "uint256"
       }
     ],
-    "name": "withdraw",
+    "name": "withdrawRevenue",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "payToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      }
+    ],
+    "name": "withdrawCommission",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -403,6 +516,30 @@
       }
     ],
     "name": "getBalance",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "acccount",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IERC20",
+        "name": "payToken",
+        "type": "address"
+      }
+    ],
+    "name": "getRevenue",
     "outputs": [
       {
         "internalType": "uint256",
