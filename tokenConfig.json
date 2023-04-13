@@ -1,26 +1,26 @@
 {
     "govToken": {
-        "name": "Demo Governance Token",
-        "symbol": "DGT",
+        "name": "Oasis Coin",
+        "symbol": "OKC",
         "cap": "50000000000000000000000000000",
         "owner": ""
     },
 
     "gameTokens": [{
-        "name": "Demo Game Token",
-        "symbol": "DAT",
+        "name": "Oasis Game Token",
+        "symbol": "OKT",
         "owner": ""
     }],
 
     "gameNFTs": [{
-        "name": "Demo Game NFT",
-        "symbol": "DGNFT",
-        "mintAdmins": [],
+        "name": "Oasis Game NFT",
+        "symbol": "OGNFT",
+        "mintAdmins": ["0x685D9459B7Ca202f0518c329Da37752E2E88FA94"],
         "owner":""
     }],
 
     "gameVault": {
-        "withdrawAdmins": [],
+        "withdrawAdmins": ["0x685D9459B7Ca202f0518c329Da37752E2E88FA94"],
         "owner": ""
     }
 }

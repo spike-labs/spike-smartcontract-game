@@ -149,7 +149,7 @@ interface IERC20Permit {
 // File: @openzeppelin/contracts/utils/Address.sol
 
 
-// OpenZeppelin Contracts (last updated v4.7.0) (utils/Address.sol)
+// OpenZeppelin Contracts (last updated v4.8.0) (utils/Address.sol)
 
 pragma solidity ^0.8.1;
 
@@ -233,7 +233,7 @@ library Address {
      * _Available since v3.1._
      */
     function functionCall(address target, bytes memory data) internal returns (bytes memory) {
-        return functionCall(target, data, "Address: low-level call failed");
+        return functionCallWithValue(target, data, 0, "Address: low-level call failed");
     }
 
     /**
@@ -282,10 +282,8 @@ library Address {
         string memory errorMessage
     ) internal returns (bytes memory) {
         require(address(this).balance >= value, "Address: insufficient balance for call");
-        require(isContract(target), "Address: call to non-contract");
-
         (bool success, bytes memory returndata) = target.call{value: value}(data);
-        return verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResultFromTarget(target, success, returndata, errorMessage);
     }
 
     /**
@@ -309,10 +307,8 @@ library Address {
         bytes memory data,
         string memory errorMessage
     ) internal view returns (bytes memory) {
-        require(isContract(target), "Address: static call to non-contract");
-
         (bool success, bytes memory returndata) = target.staticcall(data);
-        return verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResultFromTarget(target, success, returndata, errorMessage);
     }
 
     /**
@@ -336,15 +332,37 @@ library Address {
         bytes memory data,
         string memory errorMessage
     ) internal returns (bytes memory) {
-        require(isContract(target), "Address: delegate call to non-contract");
-
         (bool success, bytes memory returndata) = target.delegatecall(data);
-        return verifyCallResult(success, returndata, errorMessage);
+        return verifyCallResultFromTarget(target, success, returndata, errorMessage);
     }
 
     /**
-     * @dev Tool to verifies that a low level call was successful, and revert if it wasn't, either by bubbling the
-     * revert reason using the provided one.
+     * @dev Tool to verify that a low level call to smart-contract was successful, and revert (either by bubbling
+     * the revert reason or using the provided one) in case of unsuccessful call or if target was not a contract.
+     *
+     * _Available since v4.8._
+     */
+    function verifyCallResultFromTarget(
+        address target,
+        bool success,
+        bytes memory returndata,
+        string memory errorMessage
+    ) internal view returns (bytes memory) {
+        if (success) {
+            if (returndata.length == 0) {
+                // only check isContract if the call was successful and the return data is empty
+                // otherwise we already know that it was a contract
+                require(isContract(target), "Address: call to non-contract");
+            }
+            return returndata;
+        } else {
+            _revert(returndata, errorMessage);
+        }
+    }
+
+    /**
+     * @dev Tool to verify that a low level call was successful, and revert if it wasn't, either by bubbling the
+     * revert reason or using the provided one.
      *
      * _Available since v4.3._
      */
@@ -356,17 +374,21 @@ library Address {
         if (success) {
             return returndata;
         } else {
-            // Look for revert reason and bubble it up if present
-            if (returndata.length > 0) {
-                // The easiest way to bubble the revert reason is using memory via assembly
-                /// @solidity memory-safe-assembly
-                assembly {
-                    let returndata_size := mload(returndata)
-                    revert(add(32, returndata), returndata_size)
-                }
-            } else {
-                revert(errorMessage);
+            _revert(returndata, errorMessage);
+        }
+    }
+
+    function _revert(bytes memory returndata, string memory errorMessage) private pure {
+        // Look for revert reason and bubble it up if present
+        if (returndata.length > 0) {
+            // The easiest way to bubble the revert reason is using memory via assembly
+            /// @solidity memory-safe-assembly
+            assembly {
+                let returndata_size := mload(returndata)
+                revert(add(32, returndata), returndata_size)
             }
+        } else {
+            revert(errorMessage);
         }
     }
 }
@@ -374,7 +396,7 @@ library Address {
 // File: @openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 
-// OpenZeppelin Contracts (last updated v4.7.0) (token/ERC20/utils/SafeERC20.sol)
+// OpenZeppelin Contracts (last updated v4.8.0) (token/ERC20/utils/SafeERC20.sol)
 
 pragma solidity ^0.8.0;
 
@@ -477,7 +499,7 @@ library SafeERC20 {
      */
     function _callOptionalReturn(IERC20 token, bytes memory data) private {
         // We need to perform a low level call here, to bypass Solidity's return data size checking mechanism, since
-        // we're implementing it ourselves. We use {Address.functionCall} to perform this call, which verifies that
+        // we're implementing it ourselves. We use {Address-functionCall} to perform this call, which verifies that
         // the target address contains contract code and also asserts for success in the low-level call.
 
         bytes memory returndata = address(token).functionCall(data, "SafeERC20: low-level call failed");
@@ -519,7 +541,7 @@ interface IERC165 {
 // File: @openzeppelin/contracts/token/ERC721/IERC721.sol
 
 
-// OpenZeppelin Contracts (last updated v4.7.0) (token/ERC721/IERC721.sol)
+// OpenZeppelin Contracts (last updated v4.8.0) (token/ERC721/IERC721.sol)
 
 pragma solidity ^0.8.0;
 
@@ -599,7 +621,9 @@ interface IERC721 is IERC165 {
     /**
      * @dev Transfers `tokenId` token from `from` to `to`.
      *
-     * WARNING: Usage of this method is discouraged, use {safeTransferFrom} whenever possible.
+     * WARNING: Note that the caller is responsible to confirm that the recipient is capable of receiving ERC721
+     * or else they may be permanently lost. Usage of {safeTransferFrom} prevents loss, though the caller must
+     * understand this adds an external call which potentially creates a reentrancy vulnerability.
      *
      * Requirements:
      *
@@ -722,7 +746,7 @@ contract ERC721Holder is IERC721Receiver {
 // File: @openzeppelin/contracts/security/ReentrancyGuard.sol
 
 
-// OpenZeppelin Contracts v4.4.1 (security/ReentrancyGuard.sol)
+// OpenZeppelin Contracts (last updated v4.8.0) (security/ReentrancyGuard.sol)
 
 pragma solidity ^0.8.0;
 
@@ -771,14 +795,20 @@ abstract contract ReentrancyGuard {
      * `private` function that does the actual work.
      */
     modifier nonReentrant() {
-        // On the first call to nonReentrant, _notEntered will be true
+        _nonReentrantBefore();
+        _;
+        _nonReentrantAfter();
+    }
+
+    function _nonReentrantBefore() private {
+        // On the first call to nonReentrant, _status will be _NOT_ENTERED
         require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
 
         // Any calls to nonReentrant after this point will fail
         _status = _ENTERED;
+    }
 
-        _;
-
+    function _nonReentrantAfter() private {
         // By storing the original value once again, a refund is triggered (see
         // https://eips.ethereum.org/EIPS/eip-2200)
         _status = _NOT_ENTERED;
@@ -882,6 +912,7 @@ contract GameVault is Ownable, ReentrancyGuard, ERC721Holder {
     event AdminEnabled(address admin, bool enabled);
     event Withdraw(address token, address from, address to, uint256 amount);
     event WithdrawNFT(address token, address from, address to, uint256 tokenId);
+    event Deposit(address token, uint256 amount, address depositor);
 
     struct TokenBalance {
         address token;
@@ -895,6 +926,18 @@ contract GameVault is Ownable, ReentrancyGuard, ERC721Holder {
 
     constructor() {
         admins[msg.sender] = true;
+    }
+
+    function deposit(address token, uint256 amount) external payable {
+        address depositor = msg.sender;
+        if (_isNativeToken(token)) {
+            amount = msg.value;
+        } else {
+            IERC20(token).safeTransferFrom(depositor, address(this), amount);
+        }
+        require(amount > 0, "!amount");
+
+        emit Deposit(token, amount, depositor);
     }
 
     function batchWithdraw(address token, address payable[] memory recipients, uint[] memory amounts) external onlyAdmin nonReentrant {
@@ -922,7 +965,7 @@ contract GameVault is Ownable, ReentrancyGuard, ERC721Holder {
             require(!riskControlStrategy.isRisky(token, recipient, amount, msg.sender), "risky operation");
         }
 
-        if (address(token) == address(0x0)) {
+        if (_isNativeToken(token)) {
             Address.sendValue(recipient, amount);
         } else {
             IERC20(token).safeTransfer(recipient, amount);
@@ -967,7 +1010,7 @@ contract GameVault is Ownable, ReentrancyGuard, ERC721Holder {
     }
 
     function getTokenBalance(address token) view public returns (uint256) {
-        if (token == address(0x0)) {
+        if (_isNativeToken(token)) {
             return address(this).balance;
         }
         return IERC20(token).balanceOf(address(this));
@@ -980,6 +1023,10 @@ contract GameVault is Ownable, ReentrancyGuard, ERC721Holder {
             tokenBalances[i].balance = getTokenBalance(tokens[i]);
         }
         return tokenBalances;
+    }
+
+    function _isNativeToken(address token) pure internal returns (bool) {
+        return token == address(0x0);
     }
 
     receive() external payable {

@@ -22,6 +22,7 @@ contract GameVault is Ownable, ReentrancyGuard, ERC721Holder {
     event AdminEnabled(address admin, bool enabled);
     event Withdraw(address token, address from, address to, uint256 amount);
     event WithdrawNFT(address token, address from, address to, uint256 tokenId);
+    event Deposit(address token, uint256 amount, address depositor);
 
     struct TokenBalance {
         address token;
@@ -35,6 +36,18 @@ contract GameVault is Ownable, ReentrancyGuard, ERC721Holder {
 
     constructor() {
         admins[msg.sender] = true;
+    }
+
+    function deposit(address token, uint256 amount) external payable {
+        address depositor = msg.sender;
+        if (_isNativeToken(token)) {
+            amount = msg.value;
+        } else {
+            IERC20(token).safeTransferFrom(depositor, address(this), amount);
+        }
+        require(amount > 0, "!amount");
+
+        emit Deposit(token, amount, depositor);
     }
 
     function batchWithdraw(address token, address payable[] memory recipients, uint[] memory amounts) external onlyAdmin nonReentrant {
@@ -62,7 +75,7 @@ contract GameVault is Ownable, ReentrancyGuard, ERC721Holder {
             require(!riskControlStrategy.isRisky(token, recipient, amount, msg.sender), "risky operation");
         }
 
-        if (address(token) == address(0x0)) {
+        if (_isNativeToken(token)) {
             Address.sendValue(recipient, amount);
         } else {
             IERC20(token).safeTransfer(recipient, amount);
@@ -107,7 +120,7 @@ contract GameVault is Ownable, ReentrancyGuard, ERC721Holder {
     }
 
     function getTokenBalance(address token) view public returns (uint256) {
-        if (token == address(0x0)) {
+        if (_isNativeToken(token)) {
             return address(this).balance;
         }
         return IERC20(token).balanceOf(address(this));
@@ -120,6 +133,10 @@ contract GameVault is Ownable, ReentrancyGuard, ERC721Holder {
             tokenBalances[i].balance = getTokenBalance(tokens[i]);
         }
         return tokenBalances;
+    }
+
+    function _isNativeToken(address token) pure internal returns (bool) {
+        return token == address(0x0);
     }
 
     receive() external payable {

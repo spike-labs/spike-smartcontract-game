@@ -16,15 +16,15 @@
   "license": "ISC",
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.0",
-    "@truffle/hdwallet-provider": "^2.0.9",
     "dotenv": "^16.0.1",
-    "merkletreejs": "^0.2.32",
     "keccak256": "^1.0.6",
+    "merkletreejs": "^0.2.32",
     "truffle-abi": "^1.0.3",
     "yargs": "^17.5.1"
   },
   "devDependencies": {
-    "eth-gas-reporter": "^0.2.25",
+    "@truffle/hdwallet-provider": "^1.7.0",
+    "eth-gas-reporter": "^0.0.4",
     "truffle-plugin-verify": "^0.5.27"
   },
   "directories": {
