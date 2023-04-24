@@ -131,7 +131,7 @@ contract PaymentMaster is Ownable2Step {
         payToken.safeTransfer(msg.sender, amount);
     }
 
-    function withdrawCommission(IERC20 payToken, address to) external {
+    function withdrawCommission(IERC20 payToken, address to) external onlyOwner {
         uint256 totalCommission = commissionBalance[payToken];
         commissionBalance[payToken] = 0;
         payToken.safeTransfer(to, totalCommission);

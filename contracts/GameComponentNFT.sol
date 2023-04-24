@@ -5,7 +5,10 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/common/ERC2981.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./payment/PaymentMaster.sol";
 
@@ -13,10 +16,12 @@ import "./payment/PaymentMaster.sol";
  * @title NFT definition for game component
  * @author Spike Labs
  */
-contract GameComponentNFT is ERC721Enumerable, ERC2981 { 
+contract GameComponentNFT is ERC721Enumerable, ERC2981 {
+    using SafeERC20 for IERC20;
+
     error Unauthorized(address user);
-    error NotMintBase(uint256 tokenId);
     error IllegalArgument();
+    error InvalidSignature();
 
     event UsageFeeUpdated(uint256 tokenId, uint256 oldUsageFee, uint256 newUsageFee);
     event MintTokenRoyaltyFeeUpdated(uint256 tokenId, uint256 oldMintTokenRoyaltyFee, uint256 newMintTokenRoyaltyFee);
@@ -30,8 +35,7 @@ contract GameComponentNFT is ERC721Enumerable, ERC2981 {
 
     // tokenId => tokenURI
     mapping(uint256 => string) private _tokenURIs;
-    // tokenId => mintAllowed
-    mapping(uint256 => bool) public tokenMintAllowed;
+
     // tokenId => baseId
     mapping(uint256 => uint256) public baseToken;
 
@@ -39,10 +43,17 @@ contract GameComponentNFT is ERC721Enumerable, ERC2981 {
     // tokenId => subComponents
     mapping(uint256 => uint256[]) public tokenSubComponents;
 
-    constructor(string memory name, string memory symbol) ERC721(name, symbol) {
+    address public signer;
+    address public fundWallet;
+    IERC20 public resourceFeeToken;
+
+    constructor(string memory name, string memory symbol, address signer_, address fundWallet_, IERC20 resourceFeeToken_) ERC721(name, symbol) {
         usagePayment = new PaymentMaster();
         usagePayment.transferOwnership(msg.sender);
         usagePayment.setPaymentOwner(address(this));
+        signer = signer_;
+        fundWallet = fundWallet_;
+        resourceFeeToken = resourceFeeToken_;
     }
 
     /**
@@ -83,29 +94,30 @@ contract GameComponentNFT is ERC721Enumerable, ERC2981 {
     /**
      * Mint new game or game component based on existing one
      * @param _tokenURI Token URI for new game or game component token
-     * @param baseId The game or game component to be minted with
      * @param marketRoyaltyFraction Royalty setting per ERC2981
      * @param usageFeePerUnit The usage fee for new token
      * @param payToken The token used to pay usage fee
      */
-    function mint(string memory _tokenURI, uint256 baseId, uint96 marketRoyaltyFraction, uint256 usageFeePerUnit, IERC20 payToken) external {
-        if (baseId == 0 || !tokenMintAllowed[baseId]) revert NotMintBase(baseId);
-        if (ownerOf(baseId) == address(0x0)) revert IllegalArgument();
-
-        usagePayment.checkService(baseId, msg.sender, ownerOf(baseId));
-        mint(_tokenURI, marketRoyaltyFraction, usageFeePerUnit, payToken);
-        baseToken[_tokenIdCounter.current()] = baseId;
+    function mint(string memory _tokenURI, uint256 resourceFee, bytes memory signature, uint256[] memory subComponents, uint96 marketRoyaltyFraction, uint256 usageFeePerUnit, IERC20 payToken) external {
+        uint256 numberOfSubComponents = subComponents.length;
+        uint256 tokenId = mint(_tokenURI, resourceFee, signature, marketRoyaltyFraction, usageFeePerUnit, payToken);
+        for (uint i = 0; i < numberOfSubComponents; i++) {
+            usagePayment.checkService(subComponents[i], msg.sender, ownerOf(subComponents[i]));
+            tokenSubComponents[tokenId].push(subComponents[i]);
+        }
     }
 
-    function mint(string memory _tokenURI, uint96 marketRoyaltyFraction, uint256 usageFeePerUnit, IERC20 payToken) public {
+    function mint(string memory _tokenURI, uint256 resourceFee, bytes memory signature, uint96 marketRoyaltyFraction, uint256 usageFeePerUnit, IERC20 payToken) public returns (uint256 tokenId) {
         if (marketRoyaltyFraction >= 10000) revert IllegalArgument();
+
+        checkAndPayResourceFee(_tokenURI, resourceFee, signature);
+
         _tokenIdCounter.increment();
         address minter = msg.sender;
-        uint256 tokenId = _tokenIdCounter.current();
+        tokenId = _tokenIdCounter.current();
         mintInternal(minter, tokenId);
         _setTokenURI(tokenId, _tokenURI);
         _setTokenRoyalty(tokenId, minter, marketRoyaltyFraction);
-        toggleMintAllowed(tokenId);
         usagePayment.configureFeeStructure(tokenId, payToken, usageFeePerUnit, false);
     }
 
@@ -113,6 +125,14 @@ contract GameComponentNFT is ERC721Enumerable, ERC2981 {
         require(!_exists(tokenId), "Already minted");
 
         _safeMint(to, tokenId);
+    }
+
+    function checkAndPayResourceFee(string memory tokenURI_, uint256 resourceFee, bytes memory signature) internal {
+        bytes memory message = abi.encodePacked(tokenURI_, resourceFee);
+        bytes32 messageHash = ECDSA.toEthSignedMessageHash(message);
+        bool isValidSignature = SignatureChecker.isValidSignatureNow(signer, messageHash, signature);
+        if (!isValidSignature) revert InvalidSignature();
+        resourceFeeToken.safeTransferFrom(msg.sender, fundWallet, resourceFee);
     }
     
     /**
@@ -141,26 +161,6 @@ contract GameComponentNFT is ERC721Enumerable, ERC2981 {
         if (msg.sender != ownerOf(tokenId)) revert Unauthorized(msg.sender);
 
         super._setTokenRoyalty(tokenId, receiver, feeNumerator);
-    }
-
-    /**
-     * @dev Set to be a mint base or not for specific NFT
-     * @param tokenId The specific NFT token id
-     */
-    function toggleMintAllowed(uint256 tokenId) public {
-        if (msg.sender != ownerOf(tokenId)) revert Unauthorized(msg.sender);
-
-        tokenMintAllowed[tokenId] = !tokenMintAllowed[tokenId];
-
-        emit ToggleTokenMintAllowed(tokenId, tokenMintAllowed[tokenId]);
-    }
-    
-    function addSubComponents(uint256 tokenId, uint256[] calldata subComponents) external {
-        if (msg.sender != ownerOf(tokenId)) revert Unauthorized(msg.sender);
-
-        for (uint256 i = 0; i < subComponents.length; i++) {
-            tokenSubComponents[tokenId].push(subComponents[i]);
-        }
     }
 
     function replaceSubComponent(uint256 tokenId, uint256 indexId, uint256 subComponent) external {

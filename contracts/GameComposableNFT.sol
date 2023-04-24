@@ -37,7 +37,7 @@ contract GameComposableNFT is IComposableNFT, GameComponentNFT, ERC721Holder, ER
         _;
     }
 
-    constructor(string memory name, string memory symbol, address defaultAdmin) GameComponentNFT(name, symbol) {
+    constructor(string memory name, string memory symbol, address defaultAdmin, address signer_, address fundWallet_, IERC20 resourceFeeToken_) GameComponentNFT(name, symbol, signer_, fundWallet_, resourceFeeToken_) {
         admins[defaultAdmin] = true;
         admins[msg.sender] = true;
     }
