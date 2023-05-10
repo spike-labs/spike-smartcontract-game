@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "@openzeppelin/contracts/token/common/ERC2981.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -16,7 +17,7 @@ import "./payment/PaymentMaster.sol";
  * @title NFT definition for game component
  * @author Spike Labs
  */
-contract GameComponentNFT is ERC721Enumerable, ERC2981 {
+contract GameComponentNFT is ERC721Enumerable, ERC2981, Ownable2Step {
     using SafeERC20 for IERC20;
 
     error Unauthorized(address user);
@@ -46,6 +47,7 @@ contract GameComponentNFT is ERC721Enumerable, ERC2981 {
     address public signer;
     address public fundWallet;
     IERC20 public resourceFeeToken;
+    bool public sigVerifyRequired;
 
     constructor(string memory name, string memory symbol, address signer_, address fundWallet_, IERC20 resourceFeeToken_) ERC721(name, symbol) {
         usagePayment = new PaymentMaster();
@@ -128,10 +130,12 @@ contract GameComponentNFT is ERC721Enumerable, ERC2981 {
     }
 
     function checkAndPayResourceFee(string memory tokenURI_, uint256 resourceFee, bytes memory signature) internal {
-        bytes memory message = abi.encodePacked(tokenURI_, resourceFee);
-        bytes32 messageHash = ECDSA.toEthSignedMessageHash(message);
-        bool isValidSignature = SignatureChecker.isValidSignatureNow(signer, messageHash, signature);
-        if (!isValidSignature) revert InvalidSignature();
+        if (sigVerifyRequired) {
+            bytes memory message = abi.encodePacked(tokenURI_, resourceFee);
+            bytes32 messageHash = ECDSA.toEthSignedMessageHash(message);
+            bool isValidSignature = SignatureChecker.isValidSignatureNow(signer, messageHash, signature);
+            if (!isValidSignature) revert InvalidSignature();
+        }
         resourceFeeToken.safeTransferFrom(msg.sender, fundWallet, resourceFee);
     }
     
@@ -167,6 +171,10 @@ contract GameComponentNFT is ERC721Enumerable, ERC2981 {
         if (msg.sender != ownerOf(tokenId)) revert Unauthorized(msg.sender);
 
         tokenSubComponents[tokenId][indexId] = subComponent;
+    }
+
+    function toggleSigVerify() external onlyOwner {
+        sigVerifyRequired = !sigVerifyRequired;
     }
 
     function subComponentsLength(uint256 tokenId) external view returns (uint256) {
