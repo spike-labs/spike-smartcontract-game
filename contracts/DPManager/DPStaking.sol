@@ -14,6 +14,7 @@ contract DPStaking is Ownable2Step {
     error IllegalArgument();
     error Unauthorized(address unauthorizedUser);
     error StakingTokenAlreadySet();
+    error NoEnoughStakeToLock();
 
     struct StakeInfo {
         uint128 totalStake;
@@ -57,6 +58,9 @@ contract DPStaking is Ownable2Step {
 
     function lockStake(uint256 dpId, uint256 amount) internal {
         address staker = msg.sender;
+        uint256 freeStakeAmount = userStake[staker].totalStake - userStake[staker].lockedStake;
+        if (freeStakeAmount < amount) revert NoEnoughStakeToLock();
+
         userStake[staker].lockedStake += SafeCast.toUint128(amount);
 
         emit LockStake(staker, dpId, amount);
@@ -64,7 +68,7 @@ contract DPStaking is Ownable2Step {
 
     function unlockStake(uint256 dpId, uint256 amount) internal {
         address staker = msg.sender;
-        userStake[staker].lockedStake += SafeCast.toUint128(amount);
+        userStake[staker].lockedStake -= SafeCast.toUint128(amount);
 
         emit UnlockStake(staker, dpId, amount);
     }

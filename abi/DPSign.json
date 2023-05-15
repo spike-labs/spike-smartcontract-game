@@ -1,0 +1,218 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "contract DPRegistar",
+        "name": "dpRegistar_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "IllegalArgument",
+    "type": "error"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "dpId",
+        "type": "uint256"
+      }
+    ],
+    "name": "InvalidDpState",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "Unauthorized",
+    "type": "error"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "requestor",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "dpOwner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "dpId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "reqId",
+        "type": "uint256"
+      }
+    ],
+    "name": "AcceptRequest",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "requestor",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "dpOwner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "dpId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "reqId",
+        "type": "uint256"
+      }
+    ],
+    "name": "ProposeRequest",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "requestor",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "dpOwner",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "dpId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "reqId",
+        "type": "uint256"
+      }
+    ],
+    "name": "RejectRequest",
+    "type": "event"
+  },
+  {
+    "inputs": [],
+    "name": "dpRegistar",
+    "outputs": [
+      {
+        "internalType": "contract DPRegistar",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "reqInfo",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "reqId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "dpId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "requestor",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "dpOwner",
+        "type": "address"
+      },
+      {
+        "internalType": "enum DPSign.ReqStatus",
+        "name": "reqStatus",
+        "type": "uint8"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "dpId",
+        "type": "uint256"
+      }
+    ],
+    "name": "proposeRequest",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "reqId",
+        "type": "uint256"
+      }
+    ],
+    "name": "acceptRquest",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "reqId",
+        "type": "uint256"
+      }
+    ],
+    "name": "rejectRequest",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

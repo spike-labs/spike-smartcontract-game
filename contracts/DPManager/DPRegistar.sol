@@ -13,13 +13,16 @@ contract DPRegistar is DPStaking {
     event DPRegistered(uint256 dpId, address dpOwner, string dpEndpoint, string dpUrl);
     event DPUpdated(uint256 dpId, address operator, string newDpEndpoint, string newDpUrl);
     event DPUnregistered(uint256 dpId, address dpOwner);
-    event OwnershipTransferStarted(uint256 dpId, address indexed previousOwner, address indexed newOwner);
-    event OwnershipTransfered(uint256 dpId, address indexed previousOwner, address indexed newOwner);
+    event DPOwnershipTransferStarted(uint256 dpId, address indexed previousOwner, address indexed newOwner);
+    event DPOwnershipTransfered(uint256 dpId, address indexed previousOwner, address indexed newOwner);
     event UpdateRquiredStakeAmount(uint256 oldAmount, uint256 newAmount);
+    event DPPaused(uint256 dpId, bool paused);
 
     enum DPStatus {
+        Default,
         Registered,
-        UnRegistered
+        UnRegistered,
+        Paused
     }
 
     struct DPInfo {
@@ -35,6 +38,11 @@ contract DPRegistar is DPStaking {
     mapping (uint256 => DPInfo) public dpInfo;
 
     uint256 public requiredStakeAmount;
+
+    modifier onlyDPOwner(uint256 dpId) {
+       _checkDpOwner(dpId);
+       _;
+    }
 
     constructor(IERC20 stakingToken_) DPStaking(stakingToken_) {
     }
@@ -74,42 +82,63 @@ contract DPRegistar is DPStaking {
         emit DPUpdated(dpId, currentUser, dpEndpoint, dpUrl);
     }
 
-    function transferOwner(uint256 dpId, address newOwner) external {
+    function transferDPOwner(uint256 dpId, address newOwner) external {
         DPInfo storage currentDPInfo = dpInfo[dpId];
         address currentUser = msg.sender;
         if (currentDPInfo.owner != currentUser) revert Unauthorized(currentUser);
         
         currentDPInfo.pendingOwner = newOwner;
 
-        emit OwnershipTransferStarted(dpId, currentUser, newOwner);
+        emit DPOwnershipTransferStarted(dpId, currentUser, newOwner);
     }
 
-    function acceptOwner(uint256 dpId) external {
+    function acceptDPOwner(uint256 dpId) external {
         DPInfo storage currentDPInfo = dpInfo[dpId];
         address currentUser = msg.sender;
         if (currentDPInfo.pendingOwner != currentUser) revert Unauthorized(currentUser);
         currentDPInfo.pendingOwner = address(0x0);
         currentDPInfo.owner = currentUser;
 
-        emit OwnershipTransfered(dpId, currentDPInfo.owner, currentUser);
+        emit DPOwnershipTransfered(dpId, currentDPInfo.owner, currentUser);
     }
 
-    function unregister(uint256 dpId) external {
-        DPInfo storage currentDPInfo = dpInfo[dpId];
-        address currentUser = msg.sender;
-        if (currentDPInfo.owner != currentUser) revert Unauthorized(currentUser);
-        currentDPInfo.status = DPStatus.UnRegistered;
-
-        if (currentDPInfo.stakeAmount > 0) {
-            unlockStake(dpId, currentDPInfo.stakeAmount);
+    function unregister(uint256 dpId) external onlyDPOwner(dpId) {
+        dpInfo[dpId].status = DPStatus.UnRegistered;
+        uint256 stakeAmount = dpInfo[dpId].stakeAmount;
+        if (stakeAmount > 0) {
+            unlockStake(dpId, stakeAmount);
+            dpInfo[dpId].stakeAmount = 0;
         }
 
-        emit DPUnregistered(dpId, currentUser);
+        emit DPUnregistered(dpId, msg.sender);
     }
 
     function setRequiredStakeAmount(uint256 amount) external onlyOwner {
         emit UpdateRquiredStakeAmount(requiredStakeAmount, amount);
 
         requiredStakeAmount = amount;
+    }
+
+    function pause(uint256 dpId) external onlyDPOwner(dpId) {    
+        dpInfo[dpId].status = DPStatus.Paused;
+
+        emit DPPaused(dpId, true);
+    }
+
+    function unPause(uint256 dpId) external onlyDPOwner(dpId) {
+        dpInfo[dpId].status = DPStatus.Registered;
+
+        emit DPPaused(dpId, false);
+    }
+
+    function isNormal(uint256 dpId) view external returns (bool) {
+        DPInfo storage dpInfo_ = dpInfo[dpId];
+        return dpInfo_.status == DPStatus.Registered;
+    }
+
+    function _checkDpOwner(uint256 dpId) view internal {
+        DPInfo storage currentDPInfo = dpInfo[dpId];
+        address currentUser = msg.sender;
+        if (currentDPInfo.owner != currentUser) revert Unauthorized(currentUser);
     }
 }
