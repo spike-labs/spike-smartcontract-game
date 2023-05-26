@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./GameComponentNFT.sol";
 import "./IComposableNFT.sol";
 
-contract GameComposableNFT is IComposableNFT, GameComponentNFT, ERC721Holder, ERC1155Holder, Ownable {
+contract GameComposableNFT is IComposableNFT, GameComponentNFT, ERC721Holder, ERC1155Holder {
     struct SlotInfo {
         uint slotId;
         address slotAssetAddress;
@@ -37,7 +37,7 @@ contract GameComposableNFT is IComposableNFT, GameComponentNFT, ERC721Holder, ER
         _;
     }
 
-    constructor(string memory name, string memory symbol, address defaultAdmin, address signer_, address fundWallet_, IERC20 resourceFeeToken_) GameComponentNFT(name, symbol, signer_, fundWallet_, resourceFeeToken_) {
+    constructor(string memory name, string memory symbol, address defaultAdmin, address signer_, address fundWallet_, IERC20 resourceFeeToken_, address paymentMaster_) GameComponentNFT(name, symbol, signer_, fundWallet_, resourceFeeToken_, paymentMaster_) {
         admins[defaultAdmin] = true;
         admins[msg.sender] = true;
     }

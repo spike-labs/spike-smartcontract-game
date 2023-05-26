@@ -2758,10 +2758,8 @@ contract GameComponentNFT is ERC721Enumerable, ERC2981, Ownable2Step {
     IERC20 public resourceFeeToken;
     bool public sigVerifyRequired;
 
-    constructor(string memory name, string memory symbol, address signer_, address fundWallet_, IERC20 resourceFeeToken_) ERC721(name, symbol) {
-        usagePayment = new PaymentMaster();
-        usagePayment.transferOwnership(msg.sender);
-        usagePayment.setPaymentOwner(address(this));
+    constructor(string memory name, string memory symbol, address signer_, address fundWallet_, IERC20 resourceFeeToken_, address paymentMaster_) ERC721(name, symbol) {
+        usagePayment = PaymentMaster(paymentMaster_);
         signer = signer_;
         fundWallet = fundWallet_;
         resourceFeeToken = resourceFeeToken_;
@@ -2802,6 +2800,10 @@ contract GameComponentNFT is ERC721Enumerable, ERC2981, Ownable2Step {
         usagePayment.configureFeeStructure(tokenId, payToken, usageFeePerUnit, isStreamPay);
     }
 
+    function simpleMint(string memory _tokenURI, uint256 resourceFee, bytes memory signature, uint256[] memory subComponents) external {
+        mint(_tokenURI, resourceFee, signature, subComponents, 0, 0, resourceFeeToken);
+    }
+
     /**
      * Mint new game or game component based on existing one
      * @param _tokenURI Token URI for new game or game component token
@@ -2809,9 +2811,9 @@ contract GameComponentNFT is ERC721Enumerable, ERC2981, Ownable2Step {
      * @param usageFeePerUnit The usage fee for new token
      * @param payToken The token used to pay usage fee
      */
-    function mint(string memory _tokenURI, uint256 resourceFee, bytes memory signature, uint256[] memory subComponents, uint96 marketRoyaltyFraction, uint256 usageFeePerUnit, IERC20 payToken) external {
+    function mint(string memory _tokenURI, uint256 resourceFee, bytes memory signature, uint256[] memory subComponents, uint96 marketRoyaltyFraction, uint256 usageFeePerUnit, IERC20 payToken) public returns (uint256 tokenId) {
         uint256 numberOfSubComponents = subComponents.length;
-        uint256 tokenId = mint(_tokenURI, resourceFee, signature, marketRoyaltyFraction, usageFeePerUnit, payToken);
+        tokenId = mint(_tokenURI, resourceFee, signature, marketRoyaltyFraction, usageFeePerUnit, payToken);
         for (uint i = 0; i < numberOfSubComponents; i++) {
             usagePayment.checkService(subComponents[i], msg.sender, ownerOf(subComponents[i]));
             tokenSubComponents[tokenId].push(subComponents[i]);
@@ -2845,7 +2847,9 @@ contract GameComponentNFT is ERC721Enumerable, ERC2981, Ownable2Step {
             bool isValidSignature = SignatureChecker.isValidSignatureNow(signer, messageHash, signature);
             if (!isValidSignature) revert InvalidSignature();
         }
-        resourceFeeToken.safeTransferFrom(msg.sender, fundWallet, resourceFee);
+        if (resourceFee > 0) {
+            resourceFeeToken.safeTransferFrom(msg.sender, fundWallet, resourceFee);
+        }
     }
     
     /**

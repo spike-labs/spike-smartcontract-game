@@ -15,6 +15,26 @@
         "internalType": "address",
         "name": "defaultAdmin",
         "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "signer_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "fundWallet_",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IERC20",
+        "name": "resourceFeeToken_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "paymentMaster_",
+        "type": "address"
       }
     ],
     "stateMutability": "nonpayable",
@@ -26,14 +46,8 @@
     "type": "error"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      }
-    ],
-    "name": "NotMintBase",
+    "inputs": [],
+    "name": "InvalidSignature",
     "type": "error"
   },
   {
@@ -219,6 +233,25 @@
         "type": "address"
       }
     ],
+    "name": "OwnershipTransferStarted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
     "name": "OwnershipTransferred",
     "type": "event"
   },
@@ -292,19 +325,8 @@
     "type": "event"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "subComponents",
-        "type": "uint256[]"
-      }
-    ],
-    "name": "addSubComponents",
+    "inputs": [],
+    "name": "acceptOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -432,6 +454,19 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "fundWallet",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -531,8 +566,13 @@
       },
       {
         "internalType": "uint256",
-        "name": "baseId",
+        "name": "resourceFee",
         "type": "uint256"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signature",
+        "type": "bytes"
       },
       {
         "internalType": "uint96",
@@ -551,7 +591,13 @@
       }
     ],
     "name": "mint",
-    "outputs": [],
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -563,6 +609,21 @@
         "type": "string"
       },
       {
+        "internalType": "uint256",
+        "name": "resourceFee",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signature",
+        "type": "bytes"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "subComponents",
+        "type": "uint256[]"
+      },
+      {
         "internalType": "uint96",
         "name": "marketRoyaltyFraction",
         "type": "uint96"
@@ -579,7 +640,13 @@
       }
     ],
     "name": "mint",
-    "outputs": [],
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -755,6 +822,19 @@
   },
   {
     "inputs": [],
+    "name": "pendingOwner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "renounceOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -781,6 +861,19 @@
     "name": "replaceSubComponent",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "resourceFeeToken",
+    "outputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -905,6 +998,60 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "sigVerifyRequired",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "signer",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "_tokenURI",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "resourceFee",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signature",
+        "type": "bytes"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "subComponents",
+        "type": "uint256[]"
+      }
+    ],
+    "name": "simpleMint",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -975,14 +1122,8 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      }
-    ],
-    "name": "toggleMintAllowed",
+    "inputs": [],
+    "name": "toggleSigVerify",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1001,25 +1142,6 @@
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "tokenMintAllowed",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
       }
     ],
     "stateMutability": "view",
